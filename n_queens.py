@@ -1,3 +1,5 @@
+import sys
+
 def is_safe(board, row, col, n):
     for i in range(col):
         if board[row][i] == 1:
@@ -30,9 +32,25 @@ def solve_nqueens(n):
 def print_board(board):
     for row in board:
         print(" ".join("Q" if x else "." for x in row))
+    print("\nBoard Size: {}x{}".format(len(board), len(board)))
+    print("Solution:\n")
+
 
 if __name__ == "__main__":
-    n = 8 
+    if len(sys.argv) != 2:
+        print("Usage: python n_queens.py <board_size>")
+        sys.exit(1)
+    
+    try:
+        n = int(sys.argv[1])
+    except ValueError:
+        print("Board size must be an integer")
+        sys.exit(1)
+
+    if n < 1:
+        print("Board size must be greater than 0")
+        sys.exit(1)
+
     solution = solve_nqueens(n)
     if solution:
         print_board(solution)
