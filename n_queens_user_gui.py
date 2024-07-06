@@ -57,15 +57,19 @@ def check_solution(board):
 
 def show_solution_status(board):
     if check_solution(board):
-        transition_to_ending_screen()
+        transition_to_ending_screen(True)
     else:
         status_label.config(text="Solution is incorrect!", fg="red")
 
-def transition_to_ending_screen():
+def transition_to_ending_screen(success):
     for widget in root.winfo_children():
         widget.pack_forget()
 
-    ending_label = tk.Label(root, text="Congratulations! You solved the N-Queens problem!", font=("Arial", 24))
+    if success:
+        ending_label = tk.Label(root, text="Congratulations! You solved the N-Queens problem!", font=("Arial", 24))
+    else:
+        ending_label = tk.Label(root, text="Time's up! Better luck next time!", font=("Arial", 24))
+
     ending_label.pack(pady=20)
 
     exit_button = tk.Button(root, text="Exit", command=root.quit)
@@ -106,6 +110,8 @@ def start_solver():
 
     draw_board(canvas, board)
 
+    start_timer(60)  # Set the timer for 60 seconds
+
 def show_title_page():
     title_label = tk.Label(root, text="Welcome to the N-Queens Solver", font=("Arial", 24))
     title_label.pack(pady=20)
@@ -124,7 +130,31 @@ def show_title_page():
     error_label = tk.Label(root, text="", fg="red")
     error_label.pack(pady=5)
 
+def start_timer(duration):
+    global remaining_time
+    remaining_time = duration
+    update_timer()
+
+def update_timer():
+    if remaining_time > 0:
+        mins, secs = divmod(remaining_time, 60)
+        time_format = '{:02d}:{:02d}'.format(mins, secs)
+        timer_label.config(text="Time remaining: " + time_format)
+        global timer
+        timer = root.after(1000, decrement_timer)
+    else:
+        transition_to_ending_screen(False)
+
+def decrement_timer():
+    global remaining_time
+    remaining_time -= 1
+    update_timer()
+
 root = tk.Tk()
 root.title("Interactive N-Queens Solver")
+
+timer_label = tk.Label(root, text="", font=("Arial", 14))
+timer_label.pack()
+
 show_title_page()
 root.mainloop()
