@@ -5,7 +5,7 @@ import os
 LEADERBOARD_FILE = "leaderboard.txt"
 
 def create_board_canvas(root, size):
-    canvas = tk.Canvas(root, width=size, height=size)
+    canvas = tk.Canvas(root, width=size, height=size, bg="white", highlightthickness=0)
     return canvas
 
 def draw_board(canvas, board):
@@ -21,7 +21,7 @@ def draw_board(canvas, board):
             color = "white" if (i + j) % 2 == 0 else "gray"
             canvas.create_rectangle(x0, y0, x1, y1, fill=color)
             if board[i][j] == 1:
-                canvas.create_text((x0 + x1) // 2, (y0 + y1) // 2, text="Q", font=("Arial", cell_size // 2), fill="black")
+                canvas.create_text((x0 + x1) // 2, (y0 + y1) // 2, text="Q", font=("Arial", cell_size // 2, "bold"), fill="black")
 
 def on_canvas_click(event, canvas, board):
     n = len(board)
@@ -74,23 +74,24 @@ def transition_to_ending_screen(success):
         ending_label = tk.Label(root, text="Congratulations! You solved the N-Queens problem!", font=("Arial", 24))
         save_score()
     else:
-        ending_label = tk.Label(root, text="Time's up! Better luck next time!", font=("Arial", 24))
+        ending_label = tk.Label(root, text="Game Over! Time's up!", font=("Arial", 24))
 
     ending_label.pack(pady=20)
 
-    exit_button = tk.Button(root, text="Exit", command=root.quit)
+    exit_button = tk.Button(root, text="Exit", command=root.quit, font=("Arial", 14))
     exit_button.pack(pady=10)
 
-    restart_button = tk.Button(root, text="Restart", command=restart_application)
+    restart_button = tk.Button(root, text="Restart", command=restart_application, font=("Arial", 14))
     restart_button.pack(pady=10)
 
-    leaderboard_label = tk.Label(root, text="Leaderboard", font=("Arial", 18))
-    leaderboard_label.pack(pady=10)
+    if success:
+        leaderboard_label = tk.Label(root, text="Leaderboard", font=("Arial", 18))
+        leaderboard_label.pack(pady=10)
 
-    leaderboard_text = tk.Text(root, height=10, width=50)
-    leaderboard_text.pack()
-    leaderboard_text.insert(tk.END, get_leaderboard())
-    leaderboard_text.config(state=tk.DISABLED)
+        leaderboard_text = tk.Text(root, height=10, width=50, font=("Arial", 12))
+        leaderboard_text.pack()
+        leaderboard_text.insert(tk.END, get_leaderboard())
+        leaderboard_text.config(state=tk.DISABLED)
 
 def restart_application():
     for widget in root.winfo_children():
@@ -110,38 +111,38 @@ def start_solver():
         widget.pack_forget()
 
     canvas = create_board_canvas(root, 500)
-    canvas.pack()
+    canvas.pack(pady=20)
     board = [[0 for _ in range(n)] for _ in range(n)]
 
     canvas.bind("<Button-1>", lambda event: on_canvas_click(event, canvas, board))
 
-    check_button = tk.Button(root, text="Check Solution", command=lambda: show_solution_status(board))
-    check_button.pack()
+    check_button = tk.Button(root, text="Check Solution", command=lambda: show_solution_status(board), font=("Arial", 14))
+    check_button.pack(pady=10)
 
     global status_label
-    status_label = tk.Label(root, text="")
-    status_label.pack()
+    status_label = tk.Label(root, text="", font=("Arial", 14))
+    status_label.pack(pady=10)
 
     draw_board(canvas, board)
 
     start_timer(60)  # Set the timer for 60 seconds
 
 def show_title_page():
-    title_label = tk.Label(root, text="Welcome to the N-Queens Solver", font=("Arial", 24))
+    title_label = tk.Label(root, text="Welcome to the N-Queens Solver", font=("Arial", 24, "bold"))
     title_label.pack(pady=20)
 
-    instruction_label = tk.Label(root, text="Enter the board size and click Start:")
+    instruction_label = tk.Label(root, text="Enter the board size and click Start:", font=("Arial", 14))
     instruction_label.pack(pady=10)
 
     global size_entry
-    size_entry = tk.Entry(root)
+    size_entry = tk.Entry(root, font=("Arial", 14))
     size_entry.pack(pady=5)
 
-    start_button = tk.Button(root, text="Start", command=start_solver)
+    start_button = tk.Button(root, text="Start", command=start_solver, font=("Arial", 14))
     start_button.pack(pady=10)
 
     global error_label
-    error_label = tk.Label(root, text="", fg="red")
+    error_label = tk.Label(root, text="", fg="red", font=("Arial", 12))
     error_label.pack(pady=5)
 
 def start_timer(duration):
@@ -155,7 +156,7 @@ def update_timer():
     if remaining_time > 0:
         mins, secs = divmod(remaining_time, 60)
         time_format = '{:02d}:{:02d}'.format(mins, secs)
-        timer_label.config(text="Time remaining: " + time_format)
+        timer_label.config(text="Time remaining: " + time_format, font=("Arial", 14))
         global timer
         timer = root.after(1000, decrement_timer)
     else:
@@ -189,7 +190,7 @@ root = tk.Tk()
 root.title("Interactive N-Queens Solver")
 
 timer_label = tk.Label(root, text="", font=("Arial", 14))
-timer_label.pack()
+timer_label.pack(pady=10)
 
 show_title_page()
 root.mainloop()
