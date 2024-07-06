@@ -22,23 +22,44 @@ COLORS = ["red", "blue", "green", "purple"]
 
 board = [[""] * BOARD_SIZE for _ in range(BOARD_SIZE)]
 queens_count = 0
+dragging_queen = None
 
 def handle_click(event):
-    global queens_count
+    global queens_count, dragging_queen
     x, y = event.x // CELL_SIZE, event.y // CELL_SIZE
-    if board[y][x] == "":
+    if board[y][x] == "Q":
+        dragging_queen = (x, y)
+    elif board[y][x] == "":
         mark_cannot_place(x, y)
     elif board[y][x] == "X":
         remove_mark(x, y)
-    elif board[y][x] == "Q":
-        remove_queen(x, y)
     else:
         place_queen(x, y)
+
+def handle_drag(event):
+    global dragging_queen
+    if dragging_queen:
+        x, y = event.x // CELL_SIZE, event.y // CELL_SIZE
+        if 0 <= x < BOARD_SIZE and 0 <= y < BOARD_SIZE:
+            canvas.delete("drag")
+            canvas.create_text(event.x, event.y, text="Q", font=("Arial", 20), tags="drag")
+
+def handle_drop(event):
+    global dragging_queen
+    if dragging_queen:
+        x, y = event.x // CELL_SIZE, event.y // CELL_SIZE
+        old_x, old_y = dragging_queen
+        if can_place_queen(y, x):
+            remove_queen(old_x, old_y)
+            place_queen(x, y)
+        dragging_queen = None
+        canvas.delete("drag")
 
 def mark_cannot_place(col, row):
     global queens_count
     board[row][col] = "X"
     canvas.create_text(col * CELL_SIZE + CELL_SIZE // 2, row * CELL_SIZE + CELL_SIZE // 2, text="X", font=("Arial", 20))
+    update_region_count()
 
 def remove_mark(col, row):
     global queens_count
@@ -54,6 +75,7 @@ def place_queen(col, row):
         queens_count += 1
         canvas.create_text(col * CELL_SIZE + CELL_SIZE // 2, row * CELL_SIZE + CELL_SIZE // 2, text="Q", font=("Arial", 20))
         update_queens_count()
+        update_region_count()
 
 def remove_queen(col, row):
     global queens_count
@@ -62,6 +84,7 @@ def remove_queen(col, row):
     canvas.delete(tk.ALL)
     redraw_board()
     update_queens_count()
+    update_region_count()
 
 def can_place_queen(row, col):
     # Check if the position is in the same region as any other queen
@@ -101,6 +124,13 @@ def update_queens_count():
     else:
         result_label.config(text="All queens placed!")
 
+def update_region_count():
+    region_counts = [sum(board[row][col] == "Q" for row, col in region) for region in REGIONS]
+    region_labels[0].config(text=f"Region 1 Queens: {region_counts[0]}")
+    region_labels[1].config(text=f"Region 2 Queens: {region_counts[1]}")
+    region_labels[2].config(text=f"Region 3 Queens: {region_counts[2]}")
+    region_labels[3].config(text=f"Region 4 Queens: {region_counts[3]}")
+
 check_button = tk.Button(root, text="Check Solution", command=check_solution)
 check_button.pack()
 
@@ -109,6 +139,10 @@ reset_button.pack()
 
 result_label = tk.Label(root, text="")
 result_label.pack()
+
+region_labels = [tk.Label(root, text=f"Region {i + 1} Queens: 0") for i in range(4)]
+for label in region_labels:
+    label.pack()
 
 def check_solution():
     if is_valid_solution():
@@ -138,8 +172,11 @@ def reset_board():
     canvas.delete(tk.ALL)
     redraw_board()
     result_label.config(text="")
+    update_region_count()
 
 canvas.bind("<Button-1>", handle_click)
+canvas.bind("<B1-Motion>", handle_drag)
+canvas.bind("<ButtonRelease-1>", handle_drop)
 
-redraw_board()  
+redraw_board()
 root.mainloop()
