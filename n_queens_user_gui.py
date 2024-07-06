@@ -119,13 +119,32 @@ def start_solver():
     check_button = tk.Button(root, text="Check Solution", command=lambda: show_solution_status(board), font=("Arial", 14))
     check_button.pack(pady=10)
 
+    hint_button = tk.Button(root, text="Hint", command=lambda: give_hint(board), font=("Arial", 14))
+    hint_button.pack(pady=10)
+
     global status_label
     status_label = tk.Label(root, text="", font=("Arial", 14))
     status_label.pack(pady=10)
 
+    global moves_label
+    moves_label = tk.Label(root, text="Moves: 0", font=("Arial", 14))
+    moves_label.pack(pady=10)
+
+    global total_moves
+    total_moves = 0
+
     draw_board(canvas, board)
 
     start_timer(60)  # Set the timer for 60 seconds
+
+def give_hint(board):
+    n = len(board)
+    for col in range(n):
+        for row in range(n):
+            if board[row][col] == 0 and is_safe(board, row, col, n):
+                # Highlight the safe position (for demonstration, you can change the highlighting method)
+                canvas.itemconfig(board[row][col], fill="yellow")
+                return
 
 def show_title_page():
     title_label = tk.Label(root, text="Welcome to the N-Queens Solver", font=("Arial", 24, "bold"))
@@ -174,16 +193,20 @@ def stop_timer():
 
 def save_score():
     duration = end_time - start_time
+    global total_moves
     with open(LEADERBOARD_FILE, "a") as f:
-        f.write(f"{duration}\n")
+
+        player_name = "Anonymous"  # Replace with actual input from user
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        f.write(f"{player_name},{duration},{total_moves},{timestamp}\n")
 
 def get_leaderboard():
     if not os.path.exists(LEADERBOARD_FILE):
         return "No scores yet!"
     with open(LEADERBOARD_FILE, "r") as f:
-        scores = [float(line.strip()) for line in f.readlines()]
-    scores.sort()
-    leaderboard = "\n".join(f"{i+1}. {score:.2f} seconds" for i, score in enumerate(scores[:10]))
+        scores = [line.strip().split(",") for line in f.readlines()]
+    scores.sort(key=lambda x: float(x[1]))  # Sort by duration
+    leaderboard = "\n".join(f"{i+1}. {score[0]} - {score[1]:.2f} seconds, Moves: {score[2]}, ({score[3]})" for i, score in enumerate(scores[:10]))
     return leaderboard
 
 root = tk.Tk()
