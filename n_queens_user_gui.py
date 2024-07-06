@@ -1,238 +1,159 @@
 import tkinter as tk
 import time
-import os
+import random
 
-LEADERBOARD_FILE = "leaderboard.txt"
-
-
+# Constants
+BOARD_SIZE = 8
+SQUARE_SIZE = 50
+WINDOW_SIZE = BOARD_SIZE * SQUARE_SIZE
 LIGHT_THEME = {
     "bg": "white",
-    "board_color1": "white",
-    "board_color2": "gray",
-    "queen_color": "black",
-    "safe_spot_color": "yellow",
-    "text_color": "black"
+    "text_color": "black",
+    "highlight_color": "lightgrey"
 }
-
 DARK_THEME = {
-    "bg": "#2b2b2b",
-    "board_color1": "#383838",
-    "board_color2": "#505050",
-    "queen_color": "white",
-    "safe_spot_color": "#ffff00",
-    "text_color": "white"
+    "bg": "#1e1e1e",
+    "text_color": "white",
+    "highlight_color": "#2e2e2e"
 }
+CURRENT_THEME = LIGHT_THEME  # Initial theme
 
-CURRENT_THEME = LIGHT_THEME  # Default theme
+# Global variables
+board = [[0] * BOARD_SIZE for _ in range(BOARD_SIZE)]
+remaining_time = 60
+timer = None
+start_time = None
+end_time = None
+moves_count = 0
+hint_count = 3  # Example: Allow up to 3 hints
+total_moves = 0
+successful_attempts = 0
+total_attempts = 0
+total_solve_time = 0
+LEADERBOARD_FILE = "leaderboard.txt"
 
-def create_board_canvas(root, size):
-    canvas = tk.Canvas(root, width=size, height=size, bg=CURRENT_THEME["bg"], highlightthickness=0)
-    return canvas
+def initialize_board():
+    global board
+    board = [[0] * BOARD_SIZE for _ in range(BOARD_SIZE)]
 
 def draw_board(canvas, board):
     canvas.delete("all")
-    n = len(board)
-    cell_size = canvas.winfo_width() // n
-    for i in range(n):
-        for j in range(n):
-            x0 = j * cell_size
-            y0 = i * cell_size
-            x1 = x0 + cell_size
-            y1 = y0 + cell_size
-            color = CURRENT_THEME["board_color1"] if (i + j) % 2 == 0 else CURRENT_THEME["board_color2"]
-            canvas.create_rectangle(x0, y0, x1, y1, fill=color)
-            if board[i][j] == 1:
-                canvas.create_text((x0 + x1) // 2, (y0 + y1) // 2, text="Q", font=("Arial", cell_size // 2, "bold"), fill=CURRENT_THEME["queen_color"])
-
-def mark_unsafe_spots(board, row, col):
-    n = len(board)
-    # Mark horizontally
-    for i in range(n):
-        if board[row][i] == 0:
-            board[row][i] = -1
-    # Mark vertically
-    for i in range(n):
-        if board[i][col] == 0:
-            board[i][col] = -1
-    # Mark diagonally (top-left to bottom-right)
-    r, c = row, col
-    while r >= 0 and c >= 0:
-        if board[r][c] == 0:
-            board[r][c] = -1
-        r -= 1
-        c -= 1
-    r, c = row, col
-    while r < n and c < n:
-        if board[r][c] == 0:
-            board[r][c] = -1
-        r += 1
-        c += 1
-    # Mark diagonally (top-right to bottom-left)
-    r, c = row, col
-    while r >= 0 and c < n:
-        if board[r][c] == 0:
-            board[r][c] = -1
-        r -= 1
-        c += 1
-    r, c = row, col
-    while r < n and c >= 0:
-        if board[r][c] == 0:
-            board[r][c] = -1
-        r += 1
-        c -= 1
-
-def on_canvas_click(event, canvas, board):
-    n = len(board)
-    cell_size = canvas.winfo_width() // n
-    row = event.y // cell_size
-    col = event.x // cell_size
-    if board[row][col] == 1:
-        board[row][col] = 0
-        mark_unsafe_spots(board, row, col)
-    else:
-        if board[row][col] == 0:
-            board[row][col] = 1
-            mark_unsafe_spots(board, row, col)
-    draw_board(canvas, board)
-
-def is_safe(board, row, col, n):
-    for i in range(col):
-        if board[row][i] == 1:
-            return False
-    for i, j in zip(range(row, -1, -1), range(col, -1, -1)):
-        if board[i][j] == 1:
-            return False
-    for i, j in zip(range(row, n, 1), range(col, -1, -1)):
-        if board[i][j] == 1:
-            return False
-    return True
-
-def check_solution(board):
-    n = len(board)
-    for col in range(n):
-        queen_found = False
-        for row in range(n):
+    for row in range(BOARD_SIZE):
+        for col in range(BOARD_SIZE):
+            x1, y1 = col * SQUARE_SIZE, row * SQUARE_SIZE
+            x2, y2 = x1 + SQUARE_SIZE, y1 + SQUARE_SIZE
+            color = CURRENT_THEME["bg"]
+            if (row + col) % 2 == 0:
+                color = CURRENT_THEME["highlight_color"]
+            canvas.create_rectangle(x1, y1, x2, y2, fill=color)
             if board[row][col] == 1:
-                if not is_safe(board, row, col, n):
-                    return False
-                queen_found = True
-        if not queen_found:
+                canvas.create_text(x1 + SQUARE_SIZE // 2, y1 + SQUARE_SIZE // 2, text="♕", font=("Arial", 24), fill=CURRENT_THEME["text_color"])
+
+def place_queen(row, col):
+    global board
+    board[row][col] = 1
+
+def remove_queen(row, col):
+    global board
+    board[row][col] = 0
+
+def is_safe(board, row, col):
+    # Check row and column
+    for i in range(BOARD_SIZE):
+        if board[row][i] == 1 or board[i][col] == 1:
             return False
+    # Check diagonals
+    for i in range(BOARD_SIZE):
+        for j in range(BOARD_SIZE):
+            if (i + j == row + col) or (i - j == row - col):
+                if board[i][j] == 1:
+                    return False
     return True
+
+def solve_n_queens(board, col):
+    if col >= BOARD_SIZE:
+        return True
+    for i in range(BOARD_SIZE):
+        if is_safe(board, i, col):
+            place_queen(i, col)
+            if solve_n_queens(board, col + 1):
+                return True
+            remove_queen(i, col)
+    return False
+
+def start_solver():
+    global start_time, remaining_time, moves_count
+    initialize_board()
+    if solve_n_queens(board, 0):
+        start_time = time.time()
+        remaining_time = 60
+        moves_count = 0
+        update_timer()
+        draw_board(canvas, board)
+        show_game_ui()
+    else:
+        print("No solution found for this board size.")
+
+def on_canvas_click(event):
+    global moves_count
+    row = event.y // SQUARE_SIZE
+    col = event.x // SQUARE_SIZE
+    if board[row][col] == 1:
+        remove_queen(row, col)
+    else:
+        place_queen(row, col)
+    mark_unsafe_spots()
+
+def mark_unsafe_spots():
+    global board
+    for row in range(BOARD_SIZE):
+        for col in range(BOARD_SIZE):
+            if board[row][col] == 1:
+                mark_attacking_spots(row, col)
+
+def mark_attacking_spots(row, col):
+    global board
+    for i in range(BOARD_SIZE):
+        for j in range(BOARD_SIZE):
+            if (i == row or j == col or i + j == row + col or i - j == row - col) and not (i == row and j == col):
+                if board[i][j] == 0:
+                    board[i][j] = -1
+
+def show_game_ui():
+    for widget in root.winfo_children():
+        widget.pack_forget()
+    canvas.pack()
+
+    check_solution_button.pack(pady=10)
+    hint_button.pack(pady=10)
+    timer_label.pack(pady=10)
+
+def show_title_page():
+    for widget in root.winfo_children():
+        widget.pack_forget()
+    title_label.pack(pady=50)
+    start_button.pack(pady=20)
 
 def show_solution_status(board):
+    global successful_attempts, total_attempts
     if check_solution(board):
+        successful_attempts += 1
         stop_timer()
         transition_to_ending_screen(True)
     else:
         status_label.config(text="Solution is incorrect!", fg="red")
 
-def transition_to_ending_screen(success):
-    for widget in root.winfo_children():
-        widget.pack_forget()
-
-    if success:
-        ending_label = tk.Label(root, text="Congratulations! You solved the N-Queens problem!", font=("Arial", 24))
-        save_score()
-    else:
-        ending_label = tk.Label(root, text="Game Over! Time's up!", font=("Arial", 24))
-
-    ending_label.pack(pady=20)
-
-    exit_button = tk.Button(root, text="Exit", command=root.quit, font=("Arial", 14))
-    exit_button.pack(pady=10)
-
-    restart_button = tk.Button(root, text="Restart", command=restart_application, font=("Arial", 14))
-    restart_button.pack(pady=10)
-
-    if success:
-        leaderboard_label = tk.Label(root, text="Leaderboard", font=("Arial", 18))
-        leaderboard_label.pack(pady=10)
-
-        leaderboard_text = tk.Text(root, height=10, width=50, font=("Arial", 12))
-        leaderboard_text.pack()
-        leaderboard_text.insert(tk.END, get_leaderboard())
-        leaderboard_text.config(state=tk.DISABLED)
-
-def restart_application():
-    for widget in root.winfo_children():
-        widget.pack_forget()
-    show_title_page()
-
-def start_solver():
-    try:
-        n = int(size_entry.get())
-        if n < 4:
-            raise ValueError("Board size must be at least 4.")
-    except ValueError as e:
-        error_label.config(text=str(e))
-        return
-
-    for widget in root.winfo_children():
-        widget.pack_forget()
-
-    canvas = create_board_canvas(root, 500)
-    canvas.pack(pady=20)
-    board = [[0 for _ in range(n)] for _ in range(n)]
-
-    canvas.bind("<Button-1>", lambda event: on_canvas_click(event, canvas, board))
-
-    check_button = tk.Button(root, text="Check Solution", command=lambda: show_solution_status(board), font=("Arial", 14))
-    check_button.pack(pady=10)
-
-    hint_button = tk.Button(root, text="Hint", command=lambda: give_hint(board), font=("Arial", 14))
-    hint_button.pack(pady=10)
-
-    global status_label
-    status_label = tk.Label(root, text="", font=("Arial", 14))
-    status_label.pack(pady=10)
-
-    global moves_label
-    moves_label = tk.Label(root, text="Moves: 0", font=("Arial", 14))
-    moves_label.pack(pady=10)
-
-    global total_moves
-    total_moves = 0
-
-    draw_board(canvas, board)
-
-    start_timer(60)  # Set the timer for 60 seconds
-
-def give_hint(board):
-    n = len(board)
-    for col in range(n):
-        for row in range(n):
-            if board[row][col] == 0 and is_safe(board, row, col, n):
-
-                canvas.itemconfig(board[row][col], fill=CURRENT_THEME["safe_spot_color"])
-                return
-
-def show_title_page():
-    title_label = tk.Label(root, text="Welcome to the N-Queens Solver", font=("Arial", 24, "bold"), fg=CURRENT_THEME["text_color"], bg=CURRENT_THEME["bg"])
-    title_label.pack(pady=20)
-
-    instruction_label = tk.Label(root, text="Enter the board size and click Start:", font=("Arial", 14), fg=CURRENT_THEME["text_color"], bg=CURRENT_THEME["bg"])
-    instruction_label.pack(pady=10)
-
-    global size_entry
-    size_entry = tk.Entry(root, font=("Arial", 14))
-    size_entry.pack(pady=5)
-
-    start_button = tk.Button(root, text="Start", command=start_solver, font=("Arial", 14))
-    start_button.pack(pady=10)
-
-    global error_label
-    error_label = tk.Label(root, text="", fg="red", font=("Arial", 12), bg=CURRENT_THEME["bg"])
-    error_label.pack(pady=5)
-
-def start_timer(duration):
-    global start_time
-    start_time = time.time()
-    global remaining_time
-    remaining_time = duration
-    update_timer()
+def check_solution(board):
+    queens_count = sum(sum(row) for row in board)
+    if queens_count == BOARD_SIZE:
+        for col in range(BOARD_SIZE):
+            if sum(row[col] for row in board) != 1:
+                return False
+        return True
+    return False
 
 def update_timer():
+    global remaining_time
     if remaining_time > 0:
         mins, secs = divmod(remaining_time, 60)
         time_format = '{:02d}:{:02d}'.format(mins, secs)
@@ -240,6 +161,7 @@ def update_timer():
         global timer
         timer = root.after(1000, decrement_timer)
     else:
+        stop_timer()
         transition_to_ending_screen(False)
 
 def decrement_timer():
@@ -254,45 +176,99 @@ def stop_timer():
 
 def save_score():
     duration = end_time - start_time
-    global total_moves
+    global total_moves, successful_attempts, total_attempts, total_solve_time
+    total_moves += moves_count
+    total_solve_time += duration
+    total_attempts += 1
+    if check_solution(board):
+        successful_attempts += 1
     with open(LEADERBOARD_FILE, "a") as f:
-
         player_name = "Anonymous"  # Replace with actual input from user
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-        f.write(f"{player_name},{duration},{total_moves},{timestamp}\n")
+        f.write(f"{player_name},{duration},{moves_count},{timestamp}\n")
 
 def get_leaderboard():
     if not os.path.exists(LEADERBOARD_FILE):
         return "No scores yet!"
     with open(LEADERBOARD_FILE, "r") as f:
         scores = [line.strip().split(",") for line in f.readlines()]
-    scores.sort(key=lambda x: float(x[1]))  
+    scores.sort(key=lambda x: float(x[1]))  # Sort by duration
     leaderboard = "\n".join(f"{i+1}. {score[0]} - {score[1]:.2f} seconds, Moves: {score[2]}, ({score[3]})" for i, score in enumerate(scores[:10]))
     return leaderboard
 
-
-def toggle_theme():
-    global CURRENT_THEME
-    if CURRENT_THEME == LIGHT_THEME:
-        CURRENT_THEME = DARK_THEME
-    else:
-        CURRENT_THEME = LIGHT_THEME
-    root.config(bg=CURRENT_THEME["bg"])
+def transition_to_ending_screen(success):
+    global successful_attempts, total_attempts
     for widget in root.winfo_children():
-        if isinstance(widget, (tk.Label, tk.Button, tk.Entry, tk.Text)):
-            widget.config(bg=CURRENT_THEME["bg"], fg=CURRENT_THEME["text_color"])
-    draw_board(canvas, board)
+        widget.pack_forget()
+
+    if success:
+        ending_label = tk.Label(root, text="Congratulations! You solved the N-Queens problem!", font=("Arial", 24))
+    else:
+        ending_label = tk.Label(root, text="Game Over! Time's up!", font=("Arial", 24))
+
+    ending_label.pack(pady=20)
+
+    stats_label = tk.Label(root, text=f"Statistics:\n"
+                                      f"Total Attempts: {total_attempts}\n"
+                                      f"Successful Attempts: {successful_attempts}\n"
+                                      f"Average Moves: {total_moves / total_attempts:.2f}\n"
+                                      f"Average Solve Time: {total_solve_time / total_attempts:.2f} seconds",
+                           font=("Arial", 16))
+    stats_label.pack(pady=20)
+
+    exit_button = tk.Button(root, text="Exit", command=root.quit, font=("Arial", 14))
+    exit_button.pack(pady=10)
+
+    restart_button = tk.Button(root, text="Restart", command=restart_application, font=("Arial", 14))
+    restart_button.pack(pady=10)
+
+def give_hint(board):
+    global hint_count
+    if hint_count > 0:
+        hint_count -= 1
+        safe_spots = []
+        for row in range(BOARD_SIZE):
+            for col in range(BOARD_SIZE):
+                if board[row][col] == 0 and is_safe(board, row, col):
+                    safe_spots.append((row, col))
+        if safe_spots:
+            row, col = random.choice(safe_spots)
+            highlight_hint(row, col)
+    else:
+        status_label.config(text="No more hints left!", fg="red")
+
+def highlight_hint(row, col):
+    canvas.create_rectangle(col * SQUARE_SIZE, row * SQUARE_SIZE, (col + 1) * SQUARE_SIZE, (row + 1) * SQUARE_SIZE,
+                            outline="yellow", width=3)
+
+def restart_application():
+    for widget in root.winfo_children():
+        widget.pack_forget()
+    initialize_board()
+    show_title_page()
 
 root = tk.Tk()
-root.title("Interactive N-Queens Solver")
-root.config(bg=CURRENT_THEME["bg"])
+root.title("N-Queens Solver")
+root.geometry(f"{WINDOW_SIZE}x{WINDOW_SIZE}")
 
-timer_label = tk.Label(root, text="", font=("Arial", 14), fg=CURRENT_THEME["text_color"], bg=CURRENT_THEME["bg"])
-timer_label.pack(pady=10)
+# Create canvas for drawing the board
+canvas = tk.Canvas(root, width=WINDOW_SIZE, height=WINDOW_SIZE, bg=CURRENT_THEME["bg"])
+canvas.bind("<Button-1>", on_canvas_click)
+
+# Title page elements
+title_label = tk.Label(root, text="N-Queens Solver", font=("Arial", 24))
+start_button = tk.Button(root, text="Start Game", command=start_solver, font=("Arial", 14))
+
+# Game UI elements
+check_solution_button = tk.Button(root, text="Check Solution", command=lambda: show_solution_status(board), font=("Arial", 14))
+hint_button = tk.Button(root, text="Hint (3 left)", command=lambda: give_hint(board), font=("Arial", 14))
+timer_label = tk.Label(root, text="Time remaining: 01:00", font=("Arial", 14), fg=CURRENT_THEME["text_color"], bg=CURRENT_THEME["bg"])
+
+# Leaderboard display
+leaderboard_label = tk.Label(root, text="Leaderboard", font=("Arial", 20))
+leaderboard_text = tk.Text(root, width=50, height=10, font=("Arial", 12), wrap=tk.WORD)
+leaderboard_text.insert(tk.END, get_leaderboard())
+leaderboard_text.config(state=tk.DISABLED)
 
 show_title_page()
-
-theme_button = tk.Button(root, text="Toggle Theme", command=toggle_theme, font=("Arial", 14))
-theme_button.pack(pady=10)
-
 root.mainloop()
