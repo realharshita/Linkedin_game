@@ -1,4 +1,5 @@
 import tkinter as tk
+import time
 
 def create_board_canvas(root, size):
     canvas = tk.Canvas(root, width=500, height=500)
@@ -32,30 +33,39 @@ def is_safe(board, row, col, n):
             return False
     return True
 
-def solve_nqueens_util(board, col, n):
+def solve_nqueens_util(board, col, n, canvas):
     if col >= n:
         return True
     for i in range(n):
         if is_safe(board, i, col, n):
             board[i][col] = 1
-            if solve_nqueens_util(board, col + 1, n):
+            draw_board(canvas, board)
+            canvas.update()
+            time.sleep(0.5)
+            if solve_nqueens_util(board, col + 1, n, canvas):
                 return True
             board[i][col] = 0
+            draw_board(canvas, board)
+            canvas.update()
+            time.sleep(0.5)
     return False
 
-def solve_nqueens(n):
+def solve_nqueens(n, canvas):
     board = [[0 for _ in range(n)] for _ in range(n)]
-    if not solve_nqueens_util(board, 0, n):
+    if not solve_nqueens_util(board, 0, n, canvas):
         return None
     return board
 
 def start_solver(canvas, size_entry):
     n = int(size_entry.get())
-    solution = solve_nqueens(n)
+    solution = solve_nqueens(n, canvas)
     if solution:
         draw_board(canvas, solution)
     else:
         print("No solution exists")
+
+def reset_board(canvas):
+    canvas.delete("all")
 
 root = tk.Tk()
 root.title("N-Queens Solver")
@@ -64,4 +74,6 @@ size_entry.pack()
 canvas = create_board_canvas(root, 500)
 start_button = tk.Button(root, text="Solve", command=lambda: start_solver(canvas, size_entry))
 start_button.pack()
+reset_button = tk.Button(root, text="Reset", command=lambda: reset_board(canvas))
+reset_button.pack()
 root.mainloop()
