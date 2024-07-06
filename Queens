@@ -70,6 +70,31 @@ def redraw_board():
             elif board[row][col] == "Q":
                 canvas.create_text(col * CELL_SIZE + CELL_SIZE // 2, row * CELL_SIZE + CELL_SIZE // 2, text="Q", font=("Arial", 20))
 
+check_button = tk.Button(root, text="Check Solution", command=check_solution)
+check_button.pack()
+
+result_label = tk.Label(root, text="")
+result_label.pack()
+
+def check_solution():
+    if is_valid_solution():
+        result_label.config(text="Valid solution!")
+    else:
+        result_label.config(text="Invalid solution!")
+
+def is_valid_solution():
+    queens_positions = [(row, col) for row in range(BOARD_SIZE) for col in range(BOARD_SIZE) if board[row][col] == "Q"]
+    for i in range(len(queens_positions)):
+        for j in range(i + 1, len(queens_positions)):
+            if attacks(queens_positions[i], queens_positions[j]):
+                return False
+    return True
+
+def attacks(pos1, pos2):
+    row1, col1 = pos1
+    row2, col2 = pos2
+    return row1 == row2 or col1 == col2 or abs(row1 - row2) == abs(col1 - col2)
+
 canvas.bind("<Button-1>", handle_click)
 
 root.mainloop()
