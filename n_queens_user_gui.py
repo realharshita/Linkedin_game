@@ -56,8 +56,28 @@ def check_solution(board):
     return True
 
 def show_solution_status(board):
-    status = "Solution is correct!" if check_solution(board) else "Solution is incorrect!"
-    status_label.config(text=status)
+    if check_solution(board):
+        transition_to_ending_screen()
+    else:
+        status_label.config(text="Solution is incorrect!", fg="red")
+
+def transition_to_ending_screen():
+    for widget in root.winfo_children():
+        widget.pack_forget()
+
+    ending_label = tk.Label(root, text="Congratulations! You solved the N-Queens problem!", font=("Arial", 24))
+    ending_label.pack(pady=20)
+
+    exit_button = tk.Button(root, text="Exit", command=root.quit)
+    exit_button.pack(pady=10)
+
+    restart_button = tk.Button(root, text="Restart", command=restart_application)
+    restart_button.pack(pady=10)
+
+def restart_application():
+    for widget in root.winfo_children():
+        widget.pack_forget()
+    show_title_page()
 
 def start_solver():
     try:
@@ -86,22 +106,25 @@ def start_solver():
 
     draw_board(canvas, board)
 
+def show_title_page():
+    title_label = tk.Label(root, text="Welcome to the N-Queens Solver", font=("Arial", 24))
+    title_label.pack(pady=20)
+
+    instruction_label = tk.Label(root, text="Enter the board size and click Start:")
+    instruction_label.pack(pady=10)
+
+    global size_entry
+    size_entry = tk.Entry(root)
+    size_entry.pack(pady=5)
+
+    start_button = tk.Button(root, text="Start", command=start_solver)
+    start_button.pack(pady=10)
+
+    global error_label
+    error_label = tk.Label(root, text="", fg="red")
+    error_label.pack(pady=5)
+
 root = tk.Tk()
 root.title("Interactive N-Queens Solver")
-
-title_label = tk.Label(root, text="Welcome to the N-Queens Solver", font=("Arial", 24))
-title_label.pack(pady=20)
-
-instruction_label = tk.Label(root, text="Enter the board size and click Start:")
-instruction_label.pack(pady=10)
-
-size_entry = tk.Entry(root)
-size_entry.pack(pady=5)
-
-start_button = tk.Button(root, text="Start", command=start_solver)
-start_button.pack(pady=10)
-
-error_label = tk.Label(root, text="", fg="red")
-error_label.pack(pady=5)
-
+show_title_page()
 root.mainloop()
