@@ -1,0 +1,43 @@
+import tkinter as tk
+
+BOARD_SIZE = 8
+SQUARE_SIZE = 50
+WINDOW_SIZE = BOARD_SIZE * SQUARE_SIZE
+
+board = [['X' for _ in range(BOARD_SIZE)] for _ in range(BOARD_SIZE)]
+
+def initialize_board():
+    global board
+    board = [['X' for _ in range(BOARD_SIZE)] for _ in range(BOARD_SIZE)]
+
+
+def on_canvas_click(event):
+    row = event.y // SQUARE_SIZE
+    col = event.x // SQUARE_SIZE
+    if board[row][col] == 'X':
+        board[row][col] = 'Q'  
+    elif board[row][col] == 'Q':
+        board[row][col] = 'X'  
+
+
+root = tk.Tk()
+root.title("Queens Game")
+root.geometry(f"{WINDOW_SIZE}x{WINDOW_SIZE}")
+
+
+canvas = tk.Canvas(root, width=WINDOW_SIZE, height=WINDOW_SIZE, bg="white")
+canvas.bind("<Button-1>", on_canvas_click)
+canvas.pack()
+
+initialize_board()
+
+for row in range(BOARD_SIZE):
+    for col in range(BOARD_SIZE):
+        x1, y1 = col * SQUARE_SIZE, row * SQUARE_SIZE
+        x2, y2 = x1 + SQUARE_SIZE, y1 + SQUARE_SIZE
+        color = "white" if (row + col) % 2 == 0 else "lightgrey"
+        canvas.create_rectangle(x1, y1, x2, y2, fill=color)
+        if board[row][col] == 'Q':
+            canvas.create_text(x1 + SQUARE_SIZE // 2, y1 + SQUARE_SIZE // 2, text="♕", font=("Arial", 24))
+
+root.mainloop()
