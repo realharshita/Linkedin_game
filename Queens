@@ -1,43 +1,75 @@
 import tkinter as tk
 
-BOARD_SIZE = 8
-SQUARE_SIZE = 50
-WINDOW_SIZE = BOARD_SIZE * SQUARE_SIZE
-
-board = [['X' for _ in range(BOARD_SIZE)] for _ in range(BOARD_SIZE)]
-
-def initialize_board():
-    global board
-    board = [['X' for _ in range(BOARD_SIZE)] for _ in range(BOARD_SIZE)]
-
-
-def on_canvas_click(event):
-    row = event.y // SQUARE_SIZE
-    col = event.x // SQUARE_SIZE
-    if board[row][col] == 'X':
-        board[row][col] = 'Q'  
-    elif board[row][col] == 'Q':
-        board[row][col] = 'X'  
-
-
 root = tk.Tk()
 root.title("Queens Game")
-root.geometry(f"{WINDOW_SIZE}x{WINDOW_SIZE}")
 
+BOARD_SIZE = 8
+CELL_SIZE = 50
+BOARD_WIDTH = BOARD_SIZE * CELL_SIZE
+BOARD_HEIGHT = BOARD_SIZE * CELL_SIZE
 
-canvas = tk.Canvas(root, width=WINDOW_SIZE, height=WINDOW_SIZE, bg="white")
-canvas.bind("<Button-1>", on_canvas_click)
+canvas = tk.Canvas(root, width=BOARD_WIDTH, height=BOARD_HEIGHT)
 canvas.pack()
-
-initialize_board()
 
 for row in range(BOARD_SIZE):
     for col in range(BOARD_SIZE):
-        x1, y1 = col * SQUARE_SIZE, row * SQUARE_SIZE
-        x2, y2 = x1 + SQUARE_SIZE, y1 + SQUARE_SIZE
-        color = "white" if (row + col) % 2 == 0 else "lightgrey"
-        canvas.create_rectangle(x1, y1, x2, y2, fill=color)
-        if board[row][col] == 'Q':
-            canvas.create_text(x1 + SQUARE_SIZE // 2, y1 + SQUARE_SIZE // 2, text="♕", font=("Arial", 24))
+        color = "white" if (row + col) % 2 == 0 else "gray"
+        canvas.create_rectangle(col * CELL_SIZE, row * CELL_SIZE, (col + 1) * CELL_SIZE, (row + 1) * CELL_SIZE, fill=color)
+
+board = [[""] * BOARD_SIZE for _ in range(BOARD_SIZE)]
+
+def handle_click(event):
+    x, y = event.x // CELL_SIZE, event.y // CELL_SIZE
+    if board[y][x] == "":
+        mark_cannot_place(x, y)
+    elif board[y][x] == "X":
+        remove_mark(x, y)
+    elif board[y][x] == "Q":
+        remove_queen(x, y)
+    else:
+        place_queen(x, y)
+
+def mark_cannot_place(col, row):
+    board[row][col] = "X"
+    canvas.create_text(col * CELL_SIZE + CELL_SIZE // 2, row * CELL_SIZE + CELL_SIZE // 2, text="X", font=("Arial", 20))
+
+def remove_mark(col, row):
+    board[row][col] = ""
+    canvas.delete(tk.ALL)
+    redraw_board()
+
+def place_queen(col, row):
+    if can_place_queen(row, col):
+        board[row][col] = "Q"
+        canvas.create_text(col * CELL_SIZE + CELL_SIZE // 2, row * CELL_SIZE + CELL_SIZE // 2, text="Q", font=("Arial", 20))
+
+def remove_queen(col, row):
+    board[row][col] = ""
+    canvas.delete(tk.ALL)
+    redraw_board()
+
+def can_place_queen(row, col):
+    for i in range(BOARD_SIZE):
+        if board[i][col] == "Q" or board[row][i] == "Q":
+            return False
+    for i in range(BOARD_SIZE):
+        if (row + i < BOARD_SIZE and col + i < BOARD_SIZE and board[row + i][col + i] == "Q") or \
+           (row - i >= 0 and col + i < BOARD_SIZE and board[row - i][col + i] == "Q") or \
+           (row + i < BOARD_SIZE and col - i >= 0 and board[row + i][col - i] == "Q") or \
+           (row - i >= 0 and col - i >= 0 and board[row - i][col - i] == "Q"):
+            return False
+    return True
+
+def redraw_board():
+    for row in range(BOARD_SIZE):
+        for col in range(BOARD_SIZE):
+            color = "white" if (row + col) % 2 == 0 else "gray"
+            canvas.create_rectangle(col * CELL_SIZE, row * CELL_SIZE, (col + 1) * CELL_SIZE, (row + 1) * CELL_SIZE, fill=color)
+            if board[row][col] == "X":
+                canvas.create_text(col * CELL_SIZE + CELL_SIZE // 2, row * CELL_SIZE + CELL_SIZE // 2, text="X", font=("Arial", 20))
+            elif board[row][col] == "Q":
+                canvas.create_text(col * CELL_SIZE + CELL_SIZE // 2, row * CELL_SIZE + CELL_SIZE // 2, text="Q", font=("Arial", 20))
+
+canvas.bind("<Button-1>", handle_click)
 
 root.mainloop()
