@@ -17,8 +17,10 @@ for row in range(BOARD_SIZE):
         canvas.create_rectangle(col * CELL_SIZE, row * CELL_SIZE, (col + 1) * CELL_SIZE, (row + 1) * CELL_SIZE, fill=color)
 
 board = [[""] * BOARD_SIZE for _ in range(BOARD_SIZE)]
+queens_count = 0
 
 def handle_click(event):
+    global queens_count
     x, y = event.x // CELL_SIZE, event.y // CELL_SIZE
     if board[y][x] == "":
         mark_cannot_place(x, y)
@@ -30,23 +32,32 @@ def handle_click(event):
         place_queen(x, y)
 
 def mark_cannot_place(col, row):
+    global queens_count
     board[row][col] = "X"
     canvas.create_text(col * CELL_SIZE + CELL_SIZE // 2, row * CELL_SIZE + CELL_SIZE // 2, text="X", font=("Arial", 20))
 
 def remove_mark(col, row):
+    global queens_count
     board[row][col] = ""
     canvas.delete(tk.ALL)
     redraw_board()
+    update_queens_count()
 
 def place_queen(col, row):
+    global queens_count
     if can_place_queen(row, col):
         board[row][col] = "Q"
+        queens_count += 1
         canvas.create_text(col * CELL_SIZE + CELL_SIZE // 2, row * CELL_SIZE + CELL_SIZE // 2, text="Q", font=("Arial", 20))
+        update_queens_count()
 
 def remove_queen(col, row):
+    global queens_count
     board[row][col] = ""
+    queens_count -= 1
     canvas.delete(tk.ALL)
     redraw_board()
+    update_queens_count()
 
 def can_place_queen(row, col):
     for i in range(BOARD_SIZE):
@@ -70,8 +81,18 @@ def redraw_board():
             elif board[row][col] == "Q":
                 canvas.create_text(col * CELL_SIZE + CELL_SIZE // 2, row * CELL_SIZE + CELL_SIZE // 2, text="Q", font=("Arial", 20))
 
+def update_queens_count():
+    queens_left = BOARD_SIZE - queens_count
+    if queens_left > 0:
+        result_label.config(text=f"Queens left to place: {queens_left}")
+    else:
+        result_label.config(text="All queens placed!")
+
 check_button = tk.Button(root, text="Check Solution", command=check_solution)
 check_button.pack()
+
+reset_button = tk.Button(root, text="Reset Board", command=reset_board)
+reset_button.pack()
 
 result_label = tk.Label(root, text="")
 result_label.pack()
@@ -94,6 +115,16 @@ def attacks(pos1, pos2):
     row1, col1 = pos1
     row2, col2 = pos2
     return row1 == row2 or col1 == col2 or abs(row1 - row2) == abs(col1 - col2)
+
+def reset_board():
+    global queens_count
+    queens_count = 0
+    for row in range(BOARD_SIZE):
+        for col in range(BOARD_SIZE):
+            board[row][col] = ""
+    canvas.delete(tk.ALL)
+    redraw_board()
+    result_label.config(text="")
 
 canvas.bind("<Button-1>", handle_click)
 
