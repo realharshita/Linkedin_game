@@ -1,4 +1,8 @@
 import tkinter as tk
+import time
+import os
+
+LEADERBOARD_FILE = "leaderboard.txt"
 
 def create_board_canvas(root, size):
     canvas = tk.Canvas(root, width=size, height=size)
@@ -57,6 +61,7 @@ def check_solution(board):
 
 def show_solution_status(board):
     if check_solution(board):
+        stop_timer()
         transition_to_ending_screen(True)
     else:
         status_label.config(text="Solution is incorrect!", fg="red")
@@ -67,6 +72,7 @@ def transition_to_ending_screen(success):
 
     if success:
         ending_label = tk.Label(root, text="Congratulations! You solved the N-Queens problem!", font=("Arial", 24))
+        save_score()
     else:
         ending_label = tk.Label(root, text="Time's up! Better luck next time!", font=("Arial", 24))
 
@@ -77,6 +83,14 @@ def transition_to_ending_screen(success):
 
     restart_button = tk.Button(root, text="Restart", command=restart_application)
     restart_button.pack(pady=10)
+
+    leaderboard_label = tk.Label(root, text="Leaderboard", font=("Arial", 18))
+    leaderboard_label.pack(pady=10)
+
+    leaderboard_text = tk.Text(root, height=10, width=50)
+    leaderboard_text.pack()
+    leaderboard_text.insert(tk.END, get_leaderboard())
+    leaderboard_text.config(state=tk.DISABLED)
 
 def restart_application():
     for widget in root.winfo_children():
@@ -131,6 +145,8 @@ def show_title_page():
     error_label.pack(pady=5)
 
 def start_timer(duration):
+    global start_time
+    start_time = time.time()
     global remaining_time
     remaining_time = duration
     update_timer()
@@ -149,6 +165,25 @@ def decrement_timer():
     global remaining_time
     remaining_time -= 1
     update_timer()
+
+def stop_timer():
+    root.after_cancel(timer)
+    global end_time
+    end_time = time.time()
+
+def save_score():
+    duration = end_time - start_time
+    with open(LEADERBOARD_FILE, "a") as f:
+        f.write(f"{duration}\n")
+
+def get_leaderboard():
+    if not os.path.exists(LEADERBOARD_FILE):
+        return "No scores yet!"
+    with open(LEADERBOARD_FILE, "r") as f:
+        scores = [float(line.strip()) for line in f.readlines()]
+    scores.sort()
+    leaderboard = "\n".join(f"{i+1}. {score:.2f} seconds" for i, score in enumerate(scores[:10]))
+    return leaderboard
 
 root = tk.Tk()
 root.title("Interactive N-Queens Solver")
