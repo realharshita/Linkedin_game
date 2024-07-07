@@ -1,6 +1,7 @@
 import tkinter as tk
 import time
 import random
+import os
 
 # Constants
 BOARD_SIZE = 8

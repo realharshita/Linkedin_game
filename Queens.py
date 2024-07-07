@@ -131,19 +131,6 @@ def update_region_count():
     region_labels[2].config(text=f"Region 3 Queens: {region_counts[2]}")
     region_labels[3].config(text=f"Region 4 Queens: {region_counts[3]}")
 
-check_button = tk.Button(root, text="Check Solution", command=check_solution)
-check_button.pack()
-
-reset_button = tk.Button(root, text="Reset Board", command=reset_board)
-reset_button.pack()
-
-result_label = tk.Label(root, text="")
-result_label.pack()
-
-region_labels = [tk.Label(root, text=f"Region {i + 1} Queens: 0") for i in range(4)]
-for label in region_labels:
-    label.pack()
-
 def check_solution():
     if is_valid_solution():
         result_label.config(text="Valid solution!")
@@ -177,6 +164,19 @@ def reset_board():
 canvas.bind("<Button-1>", handle_click)
 canvas.bind("<B1-Motion>", handle_drag)
 canvas.bind("<ButtonRelease-1>", handle_drop)
+
+check_button = tk.Button(root, text="Check Solution", command=check_solution)
+check_button.pack()
+
+reset_button = tk.Button(root, text="Reset Board", command=reset_board)
+reset_button.pack()
+
+result_label = tk.Label(root, text="")
+result_label.pack()
+
+region_labels = [tk.Label(root, text=f"Region {i + 1} Queens: 0") for i in range(4)]
+for label in region_labels:
+    label.pack()
 
 redraw_board()
 root.mainloop()
